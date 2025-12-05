@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +17,23 @@ interface LogEntry {
   status: 'success' | 'error' | 'info';
 }
 
+interface Settings {
+  notifications: boolean;
+  autoSync: boolean;
+  darkMode: boolean;
+  soundEffects: boolean;
+  analytics: boolean;
+}
+
+interface AppData {
+  programLinked: boolean;
+  programName: string;
+  settings: Settings;
+  logs: LogEntry[];
+}
+
+const STORAGE_KEY = 'control-panel-data';
+
 const Index = () => {
   const [programLinked, setProgramLinked] = useState(false);
   const [programName, setProgramName] = useState('');
@@ -24,13 +41,40 @@ const Index = () => {
     { id: '1', timestamp: new Date().toLocaleTimeString(), action: 'Приложение запущено', status: 'success' }
   ]);
 
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     notifications: true,
     autoSync: false,
     darkMode: true,
     soundEffects: true,
     analytics: false,
   });
+
+  useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+      try {
+        const data: AppData = JSON.parse(savedData);
+        setProgramLinked(data.programLinked);
+        setProgramName(data.programName);
+        setSettings(data.settings);
+        setLogs(data.logs);
+        addLog('Данные загружены из памяти', 'success');
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        addLog('Ошибка загрузки данных', 'error');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const dataToSave: AppData = {
+      programLinked,
+      programName,
+      settings,
+      logs,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+  }, [programLinked, programName, settings, logs]);
 
   const addLog = (action: string, status: 'success' | 'error' | 'info') => {
     const newLog: LogEntry = {
