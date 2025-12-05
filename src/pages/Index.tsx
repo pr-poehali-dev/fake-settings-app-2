@@ -109,6 +109,49 @@ const Index = () => {
     addLog(`Настройка "${key}" изменена на ${value ? 'вкл' : 'выкл'}`, 'info');
   };
 
+  const handleExportConfig = () => {
+    const dataToExport: AppData = {
+      programLinked,
+      programName,
+      settings,
+      logs,
+    };
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `control-panel-config-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Конфигурация экспортирована!');
+    addLog('Конфигурация экспортирована в файл', 'success');
+  };
+
+  const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data: AppData = JSON.parse(e.target?.result as string);
+        setProgramLinked(data.programLinked);
+        setProgramName(data.programName);
+        setSettings(data.settings);
+        setLogs(data.logs);
+        toast.success('Конфигурация импортирована!');
+        addLog('Конфигурация загружена из файла', 'success');
+      } catch (error) {
+        toast.error('Ошибка чтения файла');
+        addLog('Ошибка импорта конфигурации', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success': return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -236,6 +279,55 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
+            <Card className="border-2 animate-scale-in">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon name="Database" size={24} className="text-secondary" />
+                  Управление конфигурацией
+                </CardTitle>
+                <CardDescription>
+                  Экспорт и импорт всех настроек для переноса
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={handleExportConfig}
+                    variant="outline"
+                    size="lg"
+                    className="h-24 flex-col gap-2"
+                  >
+                    <Icon name="Download" size={32} className="text-primary" />
+                    <div>
+                      <p className="font-semibold">Экспорт конфигурации</p>
+                      <p className="text-xs text-muted-foreground">Сохранить в файл</p>
+                    </div>
+                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportConfig}
+                      className="hidden"
+                    />
+                    <div className="h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
+                      <Icon name="Upload" size={32} className="text-secondary" />
+                      <div className="text-center">
+                        <p className="font-semibold">Импорт конфигурации</p>
+                        <p className="text-xs text-muted-foreground">Загрузить из файла</p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    💾 Файл конфигурации содержит все ваши настройки, привязанные программы и логи. 
+                    Скопируйте файл вместе с приложением для переноса на другой ПК.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-2 animate-scale-in">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
